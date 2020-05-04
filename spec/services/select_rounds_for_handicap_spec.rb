@@ -1,3 +1,5 @@
+require 'yaml'
+require 'json'
 require 'models/round'
 require 'services/select_rounds_for_handicap'
 
@@ -8,29 +10,14 @@ describe SelectRoundsForHandicap do
     subject { instance.call(rounds: rounds) }
 
     context 'some rounds I played recently' do
+			# TODO: Move this to a spec helper or factory etc.
       let(:rounds) do
-        [
-          Round.new(score: 71, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 72, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 92, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 90, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 85, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 89, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 93, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 82, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 87, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 84, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 81, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 82, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 69, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 84, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 85, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 86, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 87, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 88, course_rating: 70.9, slope_rating: 131),
-          Round.new(score: 89, course_rating: 67.6, slope_rating: 124),
-          Round.new(score: 93, course_rating: 71.2, slope_rating: 130),
-        ]
+				h = YAML.load(File.read('spec/fixtures/recent_rounds.yml'))
+				r = JSON.parse(JSON[h], symbolize_names: true)
+
+				r.fetch(:rounds).map do |x|
+					Round.new(x)
+				end
       end
 
       it 'returns an array of eight rounds' do
@@ -40,7 +27,7 @@ describe SelectRoundsForHandicap do
       it 'picks the eight best rounds' do
         scores = subject.map(&:score)
 
-        expect(scores).to contain_exactly(69, 71, 72, 81, 82, 82, 84, 84)
+        expect(scores).to contain_exactly(84, 84, 85, 85, 86, 86, 86, 87)
       end
 
       context 'when there are more than twenty rounds' do
@@ -48,15 +35,15 @@ describe SelectRoundsForHandicap do
 
         let(:moar_rounds) do
           [
-            *rounds,
-            Round.new(score: 68, course_rating: 70.9, slope_rating: 131)
+            *rounds.first(20),
+            Round.new(score: 72, course_rating: 70.9, slope_rating: 131)
           ]
         end
 
         it 'does not include scores from earlier than twenty rounds' do
           scores = subject.map(&:score)
 
-          expect(scores).not_to include(68)
+          expect(scores).not_to include(72)
         end
       end
     end
